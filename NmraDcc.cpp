@@ -274,7 +274,6 @@
     static byte  ISRWatch;  // Interrupt Handler Edge Filter
 #else
     static byte  ISREdge;   // Holder of the Next Edge we're looking for: RISING or FALLING
-    static byte  ISRWatch;  // Interrupt Handler Edge Filter
 #endif
 byte ISRLevel;          // expected Level at DCC input during ISR ( to detect glitches )
 byte ISRChkMask;       // Flag if Level must be checked
@@ -880,7 +879,8 @@ uint8_t writeCV (unsigned int CV, uint8_t Value)
         // because you cannot build a Bidi decoder with this lib.
         DccProcState.cv29Value = Value;
         DccProcState.Flags = (DccProcState.Flags & ~FLAGS_CV29_BITS) | (Value & FLAGS_CV29_BITS);
-    // no break, because myDccAdress must also be reset
+        // no break, because myDccAdress must also be reset
+        // FALLTHROUGH
     case CV_ACCESSORY_DECODER_ADDRESS_LSB:	// Also same CV for CV_MULTIFUNCTION_PRIMARY_ADDRESS
     case CV_ACCESSORY_DECODER_ADDRESS_MSB:
     case CV_MULTIFUNCTION_EXTENDED_ADDRESS_MSB:
@@ -1404,8 +1404,8 @@ void execDccProcessor (DCC_MSG * pDccMsg)
             {
                 if (DccProcState.Flags & FLAGS_DCC_ACCESSORY_DECODER)
                 {
-                    int16_t BoardAddress ;
-                    int16_t OutputAddress ;
+                    uint16_t BoardAddress ;
+                    uint16_t OutputAddress ;
                     uint8_t TurnoutPairIndex ;
 
                     #ifdef DEBUG_PRINT
@@ -1683,6 +1683,8 @@ void NmraDcc::deInit (bool deInitEEPROM)
 void NmraDcc::init (uint8_t ManufacturerId, uint8_t VersionId, uint8_t Flags, 
                     uint8_t OpsModeAddressBaseCV, bool initEEPROM)
 {
+    (void)initEEPROM;
+
     #if defined(ESP8266) ||  defined(ESP32) || defined(ARDUINO_ARCH_RP2040)
     if (initEEPROM)
         EEPROM.begin (MAXCV);

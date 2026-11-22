@@ -1,12 +1,12 @@
 #include <AccelStepper.h>   // Requires AccelStepper Library  - http://www.airspayce.com/mikem/arduino/AccelStepper/
-#include <EncButton2.h>     // Requires EncButton library     - https://github.com/GyverLibs/EncButton
+#include <EncButton.h>     // Requires EncButton library     - https://github.com/GyverLibs/EncButton
 #include <elapsedMillis.h>  // Requires elapsedMillis library - https://github.com/pfeerick/elapsedMillis
 
 #define OPTIMIZE_I2C 1
 
 #include <Wire.h>
-#include <SSD1306Ascii.h>
-#include <SSD1306AsciiWire.h>
+#include <SSD1306Ascii.h> // Requires SSD1306Ascii library - https://github.com/greiman/SSD1306Ascii
+#include <SSD1306AsciiWire.h> // Requires SSD1306Ascii library - https://github.com/greiman/SSD1306Ascii
 #include <EEPROM.h>
 #include <NmraDcc.h>
 
@@ -23,7 +23,7 @@
 #define NUM_LIFT_LEVELS  8
 
 #define PROGRAM_NAME     "Fahrstuhl"
-#define PROGRAM_VERSION  "1.1"
+#define PROGRAM_VERSION  "1.2"
 
 // Locate the Persistant State storage EEPROM space well above the DCC Accessory Decoder CV Storage
 #define EEPROM_BASE_ADDR  100
@@ -50,7 +50,7 @@
 
 #define STEPPER_MAX_SPEED             2100
 #define STEPPER_NORMAL_ACCELERATION   5000
-#define STEPPER_MAX_POSITION  300000U // Maximum Steps to allow the stepper to drive Up Saftey mechanism
+#define STEPPER_MAX_POSITION  300000L // Maximum Steps to allow the stepper to drive Up Saftey mechanism
 
 #define BUTTON_MANUAL     A3
 #define BUTTON_DOWN       A2
@@ -76,7 +76,7 @@ long defaultPositions[NUM_LIFT_LEVELS] = {1000, 4000, 7000, 10000, 13000, 16000,
 
 #define STEPPER_MAX_SPEED             2100
 #define STEPPER_NORMAL_ACCELERATION   5000
-#define STEPPER_MAX_POSITION  1970000U // Maximum Steps to allow the stepper to drive Up Saftey mechanism
+#define STEPPER_MAX_POSITION  1970000L // Maximum Steps to allow the stepper to drive Up Saftey mechanism
 
 #define BUTTON_MANUAL     8
 #define BUTTON_DOWN       9
@@ -113,12 +113,12 @@ PERSISTENT_VALUES persistentValues;
 // Define a stepper and the pins it will use
 AccelStepper stepper(AccelStepper::DRIVER, STEPPER_PULSE_PIN, STEPPER_DIR_PIN, -1, -1, false);
 
-EncButton2<EB_BTN> homeSensor(INPUT_PULLUP, HOME_SENSOR_PIN);
+Button homeSensor(INPUT_PULLUP, HOME_SENSOR_PIN);
 
-EncButton2<EB_BTN> btnManual(INPUT, BUTTON_MANUAL);
-EncButton2<EB_BTN> btnDown(INPUT, BUTTON_DOWN);
-EncButton2<EB_BTN> btnUp(INPUT, BUTTON_UP);
-EncButton2<EB_BTN> btnStopHome(INPUT, BUTTON_STOP_HOME);
+Button btnManual(INPUT, BUTTON_MANUAL);
+Button btnDown(INPUT, BUTTON_DOWN);
+Button btnUp(INPUT, BUTTON_UP);
+Button btnStopHome(INPUT, BUTTON_STOP_HOME);
 
 // NMRA DCC Accessory Decoder object
 NmraDcc  Dcc;
@@ -265,7 +265,7 @@ elapsedMillis lastSpeedChange = 0;
 
   // This function is called whenever a normal DCC Turnout Packet is received
   // The DCC Turnout Address is checked to see if it is within the range used to Select Elevator levels and starts a Move if a new level is selected 
-void notifyDccAccTurnoutOutput(uint16_t receivedAddress, uint8_t direction, uint8_t outputPower)
+void notifyDccAccTurnoutOutput(uint16_t receivedAddress, uint8_t direction, uint8_t /* outputPower */)
 {
   if((receivedAddress >= DCC_ACCESSORY_DECODER_BASE_ADDRESS) && (receivedAddress < (DCC_ACCESSORY_DECODER_BASE_ADDRESS + (NUM_LIFT_LEVELS/2))))
   {
@@ -290,7 +290,7 @@ void loop()
   
     //First check the Home Sensor and stop the motor if going in the down direction
   homeSensor.tick();
-  if(homeSensor.state())
+  if(homeSensor.pressing())
   {
     if((configMode || homing) && stepper.isRunning() && (lastSpeed <= 0))
     {
@@ -351,7 +351,7 @@ void loop()
     }
   }
 
-  if(btnStopHome.held())
+  if(btnStopHome.hold())
   {
     Serial.println("StopHome Held: Moving to Home Position");
     displayMessage("Homing");
@@ -370,7 +370,7 @@ void loop()
     }
   }
 
-  if(btnManual.held())
+  if(btnManual.hold())
   {
     Serial.print("Manual Held - Enter Manual Mode Pos: "); Serial.println(stepper.currentPosition());
     configMode = true;
@@ -403,7 +403,7 @@ void loop()
   btnUp.tick();
   if(configMode)
   {
-    if((btnUp.press() || btnDown.step()) && (homeSensor.state() == 0) && (lastSpeed >= -(STEPPER_MAX_SPEED - STEPPER_INC_SPEED)))
+    if((btnUp.press() || btnDown.step()) && (homeSensor.pressing() == 0) && (lastSpeed >= -(STEPPER_MAX_SPEED - STEPPER_INC_SPEED)))
     {
       newSpeed = lastSpeed - STEPPER_INC_SPEED;
       lastSpeedChange = STEPPER_MAN_SPEED_CHANGE_MILLIS;
